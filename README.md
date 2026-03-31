@@ -182,14 +182,14 @@ If the system were to evolve into a full production or enterprise-grade product,
 
 ## ▶️ Run Instructions
 
-### 1️⃣ Install dependencies
-```bash
-pip install -r requirements.txt
-
-### 2. Create and activate a virtual environment
+### 1. Create and activate a virtual environment
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
+```
+### 2. Install dependencies
+```bash
+pip install -r requirements.txt
 ```
 
 ### 3. Run the server
