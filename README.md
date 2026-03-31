@@ -1,7 +1,7 @@
-# Property Monitoring Dashboard  
-## LA City Housing Violation & Complaint Monitoring
+# 🏠 Property Monitoring Dashboard
+## 📍 LA City Housing Violation & Complaint Monitoring
 
-## Project Overview
+## 📖 Project Overview
 This project is a dedicated dashboard for automatically monitoring violation and complaint cases related to properties in Los Angeles, based on data collected from the **LA City Housing** website.
 
 By entering a property identifier (**APN**), the system retrieves the relevant case list, enriches the data using each case’s detail page, stores the information in a local database, and presents a clear overview of the property’s current status.
@@ -13,25 +13,25 @@ The purpose of the system is to replace slow and repetitive manual tracking with
 
 ---
 
-## Workflow
+## 🔄 Workflow
 
-### 1. APN Input
+### 1️⃣ APN Input
 The user enters a 10-digit property identifier.
 
-### 2. Data Extraction
+### 2️⃣ Data Extraction
 The system performs scraping on the property’s main case listing page, retrieves the list of cases, and then accesses the relevant detail pages in order to enrich the data.
 
-### 3. Storage and Comparison
+### 3️⃣ Storage and Comparison
 The extracted data is stored in SQLite, while each new scrape is compared against the existing stored records.
 
-### 4. Dashboard Presentation
+### 4️⃣ Dashboard Presentation
 The processed information is displayed in a clean and practical dashboard, making it easy to understand the current condition of the property and the urgency level of each case.
 
 ---
 
-## Core System Logic
+## ⚙️ Core System Logic
 
-## 1. Data Collection and Enrichment
+### 📥 1. Data Collection and Enrichment
 The system extracts basic identifiers from the main results page, such as:
 - `case_number`
 - `case_type`
@@ -45,7 +45,7 @@ The latest status (`last_status`) is determined dynamically based on the most re
 
 ---
 
-## 2. View State and Alert Logic (`is_viewed`)
+### 👁️ 2. View State and Alert Logic (`is_viewed`)
 To ensure that updates are not missed, the system manages a simple read/unread mechanism:
 
 - **New case** → automatically marked as `not viewed`
@@ -56,7 +56,7 @@ This logic powers the dashboard badges and helps the user focus only on cases th
 
 ---
 
-## 3. Priority Mapping Logic
+### 🚨 3. Priority Mapping Logic
 The system translates raw regulatory statuses into clear business-oriented urgency levels:
 
 | Example Status | Priority Level | Business Meaning |
@@ -68,73 +68,7 @@ The system translates raw regulatory statuses into clear business-oriented urgen
 
 ---
 
-## 4. Resilience and Edge Case Handling
-The system includes several basic protections in order to behave reliably in real-world conditions:
-
-- **Input validation** – verifies APN format before sending requests
-- **Network error handling** – uses `try/except` blocks around HTTP requests
-- **Partial data preservation** – if a detail page fails to load, the system still saves the high-level data from the main index page
-- **Future re-sync support** – incomplete cases can be retried in a later synchronization cycle
-
----
-
-## Tech Stack
-
-## MVP Stack
-For the MVP version, I chose a lightweight and efficient stack that makes it possible to build a complete end-to-end solution quickly:
-
-- **Language:** Python  
-- **Backend Framework:** Flask  
-- **Database:** SQLite  
-- **Scraping Tools:** Requests + BeautifulSoup  
-- **Frontend:** HTML / CSS / Bootstrap  
-
-### Why this stack fits the MVP
-- quick to set up and run
-- easy to understand and maintain
-- very suitable for a take-home assignment or proof of concept
-- allows the effort to stay focused on business logic and data analysis rather than heavy infrastructure
-
----
-
-## Production-Oriented Stack
-
-If the system were to evolve into a full production or enterprise-grade product, the recommended stack would change according to scalability, reliability, and workload requirements.
-
-### Backend Framework
-**FastAPI or Django**
-- **FastAPI** is an excellent choice when natural asynchronous support, high performance, and modern API design are required under heavier workloads
-- **Django** is an excellent choice when the system also needs built-in authentication, permissions, admin management, and a more opinionated full-stack structure
-
-### Database
-**PostgreSQL**
-- stronger relational database than SQLite
-- better suited for high concurrency
-- better performance for more complex queries
-- more appropriate for multi-user production environments
-
-### Distributed Task Queue
-**A background task queue solution using Redis as a message broker**
-- enables thousands of scraping jobs to run in parallel
-- prevents the user interface from being blocked
-- supports retries, scheduled refreshes, and large-scale monitoring workflows
-
-### Frontend
-**React or Vue.js**
-- enables a fast, modern, and responsive SPA experience
-- allows data updates without full page refresh
-- significantly improves the user experience for ongoing monitoring scenarios
-
-### Infrastructure
-**Docker + Kubernetes on AWS or GCP**
-- enables clean and consistent deployment
-- supports auto-scaling
-- provides higher resilience, better service isolation, and enterprise-grade infrastructure management
-
----
-
-## Stored Fields and Why They Were Chosen
-
+### 🗂️ 4. Stored Fields and Why They Were Chosen
 The system stores fields that serve two main purposes:
 1. reflecting the property’s current condition at a given point in time
 2. detecting changes across repeated scrapes
@@ -151,7 +85,7 @@ The main stored fields include:
 - `is_viewed` – whether the change of the case has already been reviewed by the user
 - `scraped_at` – last scrape timestamp
 
-### Why these fields
+### 💡 Why these fields
 These fields provide the minimum necessary structure to:
 - understand whether a case is open or closed
 - identify the latest known status
@@ -161,7 +95,7 @@ These fields provide the minimum necessary structure to:
 
 ---
 
-## How I Understood the Business Need
+## 🧠 How I Understood the Business Need
 The business need was understood as the need for a simple tool that can monitor property-related case activity without requiring repeated manual checking of an external website.
 
 Instead of requiring the user to:
@@ -174,39 +108,83 @@ the system centralizes the information into one place, preserves useful state be
 
 ---
 
-## Future Improvements
+## 🧰 Tech Stack
 
-### 1. Performance and Speed
+### 🚀 MVP Stack
+For the MVP version, I chose a lightweight and efficient stack that makes it possible to build a complete end-to-end solution quickly:
+
+- **Language:** Python  
+- **Backend Framework:** Flask  
+- **Database:** SQLite  
+- **Scraping Tools:** Requests + BeautifulSoup  
+- **Frontend:** HTML / CSS / Bootstrap  
+
+### ✅ Why this stack fits the MVP
+- quick to set up and run
+- easy to understand and maintain
+- very suitable for a take-home assignment or proof of concept
+- allows the effort to stay focused on business logic and data analysis rather than heavy infrastructure
+
+---
+
+## 🏗️ Production-Oriented Stack
+
+If the system were to evolve into a full production or enterprise-grade product, the recommended stack would change according to scalability, reliability, and workload requirements.
+
+### ⚡ Backend Framework
+**FastAPI or Django**
+- **FastAPI** is an excellent choice when natural asynchronous support, high performance, and modern API design are required under heavier workloads
+- **Django** is an excellent choice when the system also needs built-in authentication, permissions, admin management, and a more opinionated full-stack structure
+
+### 🗄️ Database
+**PostgreSQL**
+- stronger relational database than SQLite
+- better suited for high concurrency
+- better performance for more complex queries
+- more appropriate for multi-user production environments
+
+### 🔁 Distributed Task Queue
+**A background task queue solution using Redis as a message broker**
+- enables thousands of scraping jobs to run in parallel
+- prevents the user interface from being blocked
+- supports retries, scheduled refreshes, and large-scale monitoring workflows
+
+### 🖥️ Frontend
+**React or Vue.js**
+- enables a fast, modern, and responsive SPA experience
+- allows data updates without full page refresh
+- significantly improves the user experience for ongoing monitoring scenarios
+
+### ☁️ Infrastructure
+**Docker + Kubernetes on AWS or GCP**
+- enables clean and consistent deployment
+- supports auto-scaling
+- provides higher resilience, better service isolation, and enterprise-grade infrastructure management
+
+---
+
+## 🔮 Future Improvements
+
+### ⚡ 1. Performance and Speed
 - move to asynchronous processing
 - send parallel requests
-- refresh only cases that are likely to have changed
 
-### 2. Duplicate Handling
+### 🧹 2. Duplicate Handling
 - fix the existing issue in which multiple records may share the same `case_number` and `APN`
 - define a more precise unique key per record
 
-### 3. Database Upgrade
-- move from SQLite to PostgreSQL
-- improve support for concurrency, more advanced queries, and production reliability
-
-### 4. Testing Strategy
+### 🧪 3. Testing Strategy
 - add unit tests for parsing logic
 - add integration tests for the full scraping pipeline
 - add regression tests for critical business rules
 
-### 5. Scalable Architecture
-- separate the scraping service from the API layer
-- add queue and retry mechanisms
-- introduce production-grade logging and monitoring
-
 ---
 
-## Run Instructions
+## ▶️ Run Instructions
 
-### 1. Install dependencies
+### 1️⃣ Install dependencies
 ```bash
 pip install -r requirements.txt
-```
 
 ### 2. Create and activate a virtual environment
 ```bash
