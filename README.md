@@ -148,7 +148,7 @@ The main stored fields include:
 - `last_status` – latest known case status
 - `last_status_date` – date of the latest status
 - `priority` – calculated urgency level
-- `is_viewed` – whether the case has already been reviewed by the user
+- `is_viewed` – whether the change of the case has already been reviewed by the user
 - `scraped_at` – last scrape timestamp
 
 ### Why these fields
@@ -208,12 +208,18 @@ the system centralizes the information into one place, preserves useful state be
 pip install -r requirements.txt
 ```
 
-### 2. Run the server
+### 2. Create and activate a virtual environment
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+### 3. Run the server
 ```bash
 python run.py
 ```
 
-### 3. Open the application
+### 4. Open the application
 
 Open the following URL in your browser:
 
