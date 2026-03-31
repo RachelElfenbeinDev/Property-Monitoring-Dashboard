@@ -1,0 +1,47 @@
+# ============================================================================
+# Property Management Dashboard - Python Dependencies
+# LA City Housing Case Management System (Refactored)
+# ============================================================================
+# 
+# To install:
+#   python -m venv .venv
+#   .venv\Scripts\activate.ps1  (Windows PowerShell)
+#   pip install -r requirements.txt
+#
+# To run:
+#   python run.py
+#
+# For production with Gunicorn:
+#   pip install gunicorn
+#   gunicorn -w 4 "app:create_app()" --bind 0.0.0.0:5000
+#
+
+# ============================================================================
+# WEB FRAMEWORK
+# ============================================================================
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# ============================================================================
+# WEB SCRAPING & HTTP
+# ============================================================================
+requests==2.31.0
+beautifulsoup4==4.12.2
+lxml==4.9.3
+
+# ============================================================================
+# SUPPORTING LIBRARIES (Transitive Dependencies)
+# ============================================================================
+charset-normalizer==3.3.2
+idna==3.6
+urllib3==2.1.0
+soupsieve==2.5
+
+# ============================================================================
+# OPTIONAL: For development/debugging (uncomment as needed)
+# ============================================================================
+# python-dotenv==1.0.0        # For environment variable management
+# pytest==7.4.3               # For unit testing
+# black==23.12.0              # For code formatting
+# pylint==3.0.3               # For code linting
+# mypy==1.7.1                 # For static type checking

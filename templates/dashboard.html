@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Management Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- ============================================================================
+         NAVIGATION BAR
+         ============================================================================ -->
+    <nav class="navbar">
+        <!-- Logo & Title -->
+        <div class="navbar-logo">
+            <div class="logo-icon">🏢</div>
+            <span class="logo-title">Property Insights</span>
+        </div>
+
+        <!-- Navbar Content (Search, Actions, Profile) -->
+        <div class="navbar-content">
+            <!-- Search Bar -->
+            <div class="navbar-search">
+                <input 
+                    type="text" 
+                    class="navbar-search-input" 
+                    placeholder="Search by Case #..."
+                    id="navSearchInput"
+                />
+                <span class="navbar-search-icon">🔍</span>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="navbar-actions">
+                <!-- Notifications Bell (Trigger for modal) -->
+                <button class="navbar-action-btn notification-bell" id="notificationBellBtn" title="View notifications" aria-label="Notifications">
+                    <span class="action-icon">🔔</span>
+                    <span class="notification-badge" id="desktopBadge">{{ summary.unviewed_cases }}</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Hamburger Menu -->
+        <button class="navbar-hamburger" id="hamburgerBtn" aria-label="Toggle menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </nav>
+
+    <!-- Mobile Menu (Hidden by default) -->
+    <div class="navbar-mobile-menu" id="mobileMenu">
+        <button class="mobile-menu-item" id="mobileNotificationBellBtn">
+            <span>🔔</span> Notifications <span class="notification-badge" id="mobileBadge">{{ summary.unviewed_cases }}</span>
+        </button>
+        <hr class="mobile-menu-divider">
+        <button class="mobile-menu-item logout">
+            <span>🚪</span> Logout
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="page-header">
+            <div>
+                <h1>Property Management Dashboard</h1>
+                <p class="subheading">APN: <strong>{{ current_apn }}</strong></p>
+                <p class="subheading">Last synced: {{ last_update_display or 'Just now' }}</p>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <form action="{{ url_for('main.clear_apn') }}" method="post" style="margin: 0;">
+                    <button type="submit" class="change-apn-button" title="Switch to a different APN">⚙ Change APN</button>
+                </form>
+                <form action="{{ url_for('main.refresh_data') }}" method="post" style="margin: 0;">
+                    <button type="submit" class="refresh-button">⟳ Refresh Data</button>
+                </form>
+            </div>
+        </div>
+
+        {% if error_message %}
+        <div class="alert alert-warning">
+            {{ error_message }}
+        </div>
+        {% endif %}
+
+        <!-- Key Metrics (Status Cards) -->
+        <div class="status-grid">
+            <div class="status-card info">
+                <div class="status-label">Total Cases</div>
+                <div class="status-value">{{ summary.total_cases }}</div>
+                <div class="status-description">All tracked cases</div>
+            </div>
+
+            <div class="status-card success">
+                <div class="status-label">Open Cases</div>
+                <div class="status-value">{{ summary.open_cases }}</div>
+                <div class="status-description">Active, in progress</div>
+            </div>
+
+            <div class="status-card critical">
+                <div class="status-label">High Priority</div>
+                <div class="status-value">{{ summary.high_priority_cases }}</div>
+                <div class="status-description">Requires attention</div>
+            </div>
+
+            <div class="status-card warning">
+                <div class="status-label">Unreviewed</div>
+                <div class="status-value">{{ summary.unviewed_cases }}</div>
+                <div class="status-description">Need your review</div>
+            </div>
+        </div>
+
+        <!-- Cases Table Section -->
+        <div class="cases-section">
+            <div class="cases-header">
+                <div class="cases-title">Active Cases</div>
+                <div class="cases-count">{{ open_cases|length }} open • {{ closed_cases|length }} closed</div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-button active" onclick="showTab('open-tab', this)">
+                    Open Cases ({{ open_cases|length }})
+                </button>
+                <button class="tab-button" onclick="showTab('closed-tab', this)">
+                    Closed Cases ({{ closed_cases|length }})
+                </button>
+            </div>
+
+            <!-- OPEN CASES TAB -->
+            <div id="open-tab" class="tab-content active">
+                {% if open_cases %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Case #</th>
+                            <th>Type</th>
+                            <th>Last Status</th>
+                            <th>Priority</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for case in open_cases %}
+                        <tr {% if case.priority == 'High' %}class="highlight-row"{% endif %} data-case-number="{{ case.case_number }}" data-viewed="{{ case.is_viewed|lower }}" style="cursor: pointer;" onclick="openDetailModal('{{ case.case_number }}')">
+                            <td class="checkbox-cell">
+                                <input type="checkbox" class="case-checkbox" {% if case.is_viewed %}checked{% endif %} 
+                                       data-case-number="{{ case.case_number }}" title="Mark as reviewed">
+                                {% if not case.is_viewed %}<span class="unviewed-dot">●</span>{% endif %}
+                            </td>
+                            <td>
+                                {% if case.detail_url %}
+                                <a href="{{ case.detail_url }}" target="_blank" rel="noopener noreferrer">
+                                    {{ case.case_number }}
+                                </a>
+                                {% else %}
+                                {{ case.case_number }}
+                                {% endif %}
+                            </td>
+                            <td><strong>{{ case.case_type }}</strong></td>
+                            <td>{{ case.last_status or 'Open' }}</td>
+                            <td>
+                                <span class="badge badge-{{ case.priority|lower }}">{{ case.priority }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    No open cases at this time.
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- CLOSED CASES TAB -->
+            <div id="closed-tab" class="tab-content">
+                {% if closed_cases %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Case #</th>
+                            <th>Type</th>
+                            <th>Date Closed</th>
+                            <th>Last Status</th>
+                            <th>Priority</th>
+                            <!-- <th>Changes</th> -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for case in closed_cases %}
+                        <tr data-case-number="{{ case.case_number }}" data-viewed="{{ case.is_viewed|lower }}" style="cursor: pointer;" onclick="openDetailModal('{{ case.case_number }}')">
+                            <td class="checkbox-cell">
+                                <input type="checkbox" class="case-checkbox" checked disabled
+                                       data-case-number="{{ case.case_number }}" title="Case archived automatically">
+                            </td>
+                            <td><strong>{{ case.case_number }}</strong></td>
+                            <td>{{ case.case_type }}</td>
+                            <td>{{ case.date_closed }}</td>
+                            <td>{{ case.last_status or 'Closed' }}</td>
+                            <td>
+                                <span class="badge badge-{{ case.priority|lower }}">{{ case.priority }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    No closed cases to display.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- PRIORITY QUEUE MODAL -->
+    <div id="priorityModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                ⚠ Priority Queue — High Priority Cases
+                <button class="modal-close" onclick="closePriorityQueue()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="queue-items" id="queueContainer">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CASE DETAIL MODAL -->
+    <div id="caseDetailModal" class="modal">
+        <div class="modal-content case-detail-modal">
+            <div class="modal-header">
+                Case Details
+                <button class="modal-close" onclick="closeDetailModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="caseDetailContainer" class="case-detail-container">
+                    <!-- Populated by JavaScript -->
+                </div>
+                
+                <!-- Manager Actions Section -->
+                <div class="manager-actions-section">
+                    <div class="manager-actions-content">
+                        <div class="review-status-container">
+                            <label class="review-checkbox-label">
+                                <input type="checkbox" id="reviewCheckbox" class="review-checkbox">
+                                <span class="checkbox-label-text">I have reviewed this update and addressed the issues</span>
+                            </label>
+                            <div id="reviewStatusIndicator" class="review-status-indicator hidden">
+                                <span class="status-badge-success">✓ Case Marked as Reviewed</span>
+                            </div>
+                        </div>
+                        
+                        <div class="manager-actions-buttons">
+                            <button class="save-review-button" onclick="saveReview()">Confirm Review</button>
+                            <a id="viewOriginalReportLink" href="#" target="_blank" rel="noopener noreferrer" class="view-original-button">
+                                View Original Report →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ====================================================================
+        // UTILITY: Update Notification Badge with Urgent Cases Count
+        // ====================================================================
+        function updateNotificationBadge() {
+            // Badge is populated on page load from server
+            // Will be updated via API when user interacts
+        }
+        
+        // Priority Queue Data - Will be populated from API
+        const urgentCases = [];
+
+        function openPriorityQueue() {
+            const modal = document.getElementById('priorityModal');
+            const container = document.getElementById('queueContainer');
+
+            // Show loading state
+            container.innerHTML = '<p style="text-align: center; padding: 20px; color: #667085;">Loading notifications...</p>';
+
+            // Fetch actionable cases from API
+            fetch('/api/actionable_cases')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.actionable_cases.length > 0) {
+                        // Render actionable cases
+                        container.innerHTML = data.actionable_cases.map(caseItem => `
+                            <div class="queue-item actionable-case" data-case-number="${caseItem.case_number}">
+                                <div class="queue-item-title">
+                                    <span class="queue-item-badge badge-${caseItem.priority.toLowerCase()}">${caseItem.priority}</span>
+                                    <a href="#" onclick="openDetailModal('${caseItem.case_number}'); return false;" style="color: #0a5ba3; text-decoration: none; font-weight: 600;">
+                                        ${caseItem.case_number}
+                                    </a>
+                                </div>
+                                <div class="queue-item-meta">
+                                    <strong>${caseItem.case_type}</strong> • ${caseItem.last_status || 'Open'}
+                                </div>
+                                <div class="queue-item-actions">
+                                    <label class="queue-item-checkbox">
+                                        <input type="checkbox" class="action-checkbox" data-case-number="${caseItem.case_number}" onchange="markCaseViewedFromNotification(this)">
+                                        <span>Mark reviewed</span>
+                                    </label>
+                                    ${caseItem.detail_url ? `<a href="${caseItem.detail_url}" target="_blank" rel="noopener noreferrer" class="queue-item-link">View →</a>` : ''}
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        // Empty state: No actionable cases
+                        container.innerHTML = `
+                            <div class="empty-queue-actionable">
+                                <div class="empty-queue-icon">✓</div>
+                                <p class="empty-queue-message">No pending high-priority updates.</p>
+                                <p class="empty-queue-subtext">All active cases have been reviewed.</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading actionable cases:', err);
+                    container.innerHTML = '<p style="text-align: center; padding: 20px; color: #d32f2f;">Error loading notifications</p>';
+                });
+
+            modal.classList.add('active');
+        }
+
+        function closePriorityQueue() {
+            document.getElementById('priorityModal').classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('priorityModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePriorityQueue();
+            }
+        });
+
+        function showTab(tabId, clickedButton) {
+            const tabs = document.querySelectorAll(".tab-content");
+            const buttons = document.querySelectorAll(".tab-button");
+
+            tabs.forEach(tab => tab.classList.remove("active"));
+            buttons.forEach(button => button.classList.remove("active"));
+
+            document.getElementById(tabId).classList.add("active");
+            clickedButton.classList.add("active");
+        }
+
+        // ====================================================================
+        // NOTIFICATION BELL - MODAL TRIGGER
+        // ====================================================================
+        const notificationBellBtn = document.getElementById('notificationBellBtn');
+        const mobileNotificationBellBtn = document.getElementById('mobileNotificationBellBtn');
+        
+        if (notificationBellBtn) {
+            notificationBellBtn.addEventListener('click', openPriorityQueue);
+        }
+        
+        if (mobileNotificationBellBtn) {
+            mobileNotificationBellBtn.addEventListener('click', () => {
+                hamburgerBtn.classList.remove('active');
+                mobileMenu.classList.remove('active');
+                openPriorityQueue();
+            });
+        }
+
+        // ====================================================================
+        const hamburgerBtn = document.getElementById('hamburgerBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+
+        hamburgerBtn.addEventListener('click', () => {
+            hamburgerBtn.classList.toggle('active');
+            mobileMenu.classList.toggle('active');
+        });
+
+        // Close menu when clicking on a mobile menu item
+        document.querySelectorAll('.mobile-menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                hamburgerBtn.classList.remove('active');
+                mobileMenu.classList.remove('active');
+            });
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.navbar') && mobileMenu.classList.contains('active')) {
+                hamburgerBtn.classList.remove('active');
+                mobileMenu.classList.remove('active');
+            }
+        });
+
+        // ====================================================================
+        // NAVBAR SEARCH FUNCTIONALITY
+        // ====================================================================
+        const navSearchInput = document.getElementById('navSearchInput');
+
+        if (navSearchInput) {
+            navSearchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const searchTerm = navSearchInput.value.trim();
+                    if (searchTerm) {
+                        // Scroll to and highlight the matching case in the table
+                        const tables = document.querySelectorAll('table tbody');
+                        let found = false;
+
+                        tables.forEach(tbody => {
+                            tbody.querySelectorAll('tr').forEach(row => {
+                                const caseNumber = row.cells[0]?.textContent?.trim();
+                                if (caseNumber.includes(searchTerm)) {
+                                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    row.classList.add('highlight-search');
+                                    found = true;
+
+                                    // Remove highlight after 2 seconds
+                                    setTimeout(() => {
+                                        row.classList.remove('highlight-search');
+                                    }, 2000);
+                                }
+                            });
+                        });
+
+                        if (!found) {
+                            alert('Case #' + searchTerm + ' not found in current view');
+                        }
+                    }
+                }
+            });
+        }
+
+        // ====================================================================
+        // CHECKBOX HANDLING - Mark Cases as Reviewed
+        // ====================================================================
+        function handleCaseCheckbox(checkbox) {
+            const caseNumber = checkbox.getAttribute('data-case-number');
+            
+            fetch('/api/mark_case_viewed', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ case_number: caseNumber }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update UI immediately
+                    const row = checkbox.closest('tr');
+                    row.setAttribute('data-viewed', 'true');
+                    const dot = row.querySelector('.unviewed-dot');
+                    if (dot) dot.remove();
+                    
+                    // Update badge count
+                    const desktopBadge = document.getElementById('desktopBadge');
+                    const mobileBadge = document.getElementById('mobileBadge');
+                    if (desktopBadge) desktopBadge.textContent = data.unviewed_count;
+                    if (mobileBadge) mobileBadge.textContent = data.unviewed_count;
+                } else {
+                    alert('Failed to mark case as reviewed');
+                    checkbox.checked = false;
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                alert('Error marking case as reviewed');
+                checkbox.checked = false;
+            });
+        }
+
+        // Attach checkbox event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.case-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    handleCaseCheckbox(this);
+                });
+            });
+        });
+
+        // ====================================================================
+        // CASE DETAIL MODAL - Open, Load, and Save Review
+        // ====================================================================
+        let currentCaseNumber = null;
+
+        function openDetailModal(caseNumber) {
+            currentCaseNumber = caseNumber;
+            const modal = document.getElementById('caseDetailModal');
+            const container = document.getElementById('caseDetailContainer');
+            
+            // Show loading state
+            container.innerHTML = '<p style="text-align: center; padding: 20px;">Loading case details...</p>';
+            document.getElementById('reviewCheckbox').checked = false;
+            document.getElementById('reviewStatusIndicator').classList.add('hidden');
+            
+            // Fetch case details from API
+            fetch(`/api/case_detail/${caseNumber}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const caseData = data.case;
+                        const badgeStyle = caseData.priority ? `badge-${caseData.priority.toLowerCase()}` : 'badge-unknown';
+                        
+                        let detailsHTML = `
+                            <div class="case-detail-wrapper">
+                                <div class="detail-header">
+                                    <h2>${caseData.case_number}</h2>
+                                    <span class="badge ${badgeStyle}">${caseData.priority}</span>
+                                </div>
+                                <div class="detail-section">
+                                    <label class="detail-label">Case Type</label>
+                                    <p>${caseData.case_type || 'Not available'}</p>
+                                </div>
+                                <div class="detail-section">
+                                    <label class="detail-label">Last Status</label>
+                                    <p>${caseData.last_status || 'Not available'}</p>
+                                </div>
+                        `;
+                        
+                        if (caseData.date_closed) {
+                            detailsHTML += `
+                                <div class="detail-section">
+                                    <label class="detail-label">Date Closed</label>
+                                    <p>${caseData.date_closed}</p>
+                                </div>
+                            `;
+                        }
+                        
+                        if (caseData.complaint_text) {
+                            detailsHTML += `
+                                <div class="detail-section">
+                                    <label class="detail-label">Complaint Details</label>
+                                    <p style="background: #f5f5f5; padding: 12px; border-radius: 6px; margin-top: 8px;">${caseData.complaint_text}</p>
+                                </div>
+                            `;
+                        }
+                        
+                        detailsHTML += '</div>';
+                        
+                        container.innerHTML = detailsHTML;
+                        
+                        // Set checkbox state based on current is_viewed status
+                        document.getElementById('reviewCheckbox').checked = caseData.is_viewed;
+                        
+                        // Show status indicator if already reviewed
+                        if (caseData.is_viewed) {
+                            document.getElementById('reviewStatusIndicator').classList.remove('hidden');
+                        }
+                        
+                        // Set the view original report link
+                        const viewLink = document.getElementById('viewOriginalReportLink');
+                        if (caseData.detail_url) {
+                            viewLink.href = caseData.detail_url;
+                            viewLink.style.display = 'inline-block';
+                        } else {
+                            viewLink.style.display = 'none';
+                        }
+                    } else {
+                        container.innerHTML = '<p style="color: #d32f2f; text-align: center;">Failed to load case details</p>';
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading case details:', err);
+                    container.innerHTML = '<p style="color: #d32f2f; text-align: center;">Error loading case details</p>';
+                });
+            
+            modal.classList.add('active');
+        }
+
+        function closeDetailModal() {
+            const modal = document.getElementById('caseDetailModal');
+            modal.classList.remove('active');
+            currentCaseNumber = null;
+        }
+
+        function markCaseViewedFromNotification(checkbox) {
+            // Mark case as viewed directly from notification popup without closing it
+            const caseNumber = checkbox.getAttribute('data-case-number');
+            
+            if (!checkbox.checked) {
+                // If unchecked, we don't need to do anything
+                return;
+            }
+            
+            fetch('/api/mark_case_viewed', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ case_number: caseNumber }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove the case item from the notification popup
+                    const caseItem = document.querySelector(`.actionable-case[data-case-number="${caseNumber}"]`);
+                    if (caseItem) {
+                        caseItem.style.opacity = '0.5';
+                        caseItem.style.textDecoration = 'line-through';
+                        setTimeout(() => caseItem.remove(), 300);
+                    }
+                    
+                    // Update the table row UI
+                    const row = document.querySelector(`tr[data-case-number="${caseNumber}"]`);
+                    if (row) {
+                        row.setAttribute('data-viewed', 'true');
+                        const dot = row.querySelector('.unviewed-dot');
+                        if (dot) dot.remove();
+                        const tableCheckbox = row.querySelector('.case-checkbox');
+                        if (tableCheckbox) tableCheckbox.checked = true;
+                    }
+                    
+                    // Update badge count
+                    const desktopBadge = document.getElementById('desktopBadge');
+                    const mobileBadge = document.getElementById('mobileBadge');
+                    if (desktopBadge) desktopBadge.textContent = data.unviewed_count;
+                    if (mobileBadge) mobileBadge.textContent = data.unviewed_count;
+                    
+                    // Check if no more actionable cases - show empty state
+                    const remainingCases = document.querySelectorAll('.actionable-case').length;
+                    if (remainingCases === 0) {
+                        const container = document.getElementById('queueContainer');
+                        setTimeout(() => {
+                            container.innerHTML = `
+                                <div class="empty-queue-actionable">
+                                    <div class="empty-queue-icon">✓</div>
+                                    <p class="empty-queue-message">No pending high-priority updates.</p>
+                                    <p class="empty-queue-subtext">All active cases have been reviewed.</p>
+                                </div>
+                            `;
+                        }, 300);
+                    }
+                } else {
+                    checkbox.checked = false;
+                    alert('Failed to mark case as reviewed');
+                }
+            })
+            .catch(err => {
+                console.error('Error marking case as viewed:', err);
+                checkbox.checked = false;
+                alert('Error marking case as reviewed');
+            });
+        }
+
+        function saveReview() {
+            if (!currentCaseNumber) return;
+            
+            const isReviewed = document.getElementById('reviewCheckbox').checked;
+            
+            // If checkbox is checked, mark case as viewed
+            if (isReviewed) {
+                fetch('/api/mark_case_viewed', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ case_number: currentCaseNumber }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show the status indicator
+                        const statusIndicator = document.getElementById('reviewStatusIndicator');
+                        statusIndicator.classList.remove('hidden');
+                        
+                        // Update the table row UI
+                        const row = document.querySelector(`tr[data-case-number="${currentCaseNumber}"]`);
+                        if (row) {
+                            row.setAttribute('data-viewed', 'true');
+                            const dot = row.querySelector('.unviewed-dot');
+                            if (dot) dot.remove();
+                            const checkbox = row.querySelector('.case-checkbox');
+                            if (checkbox) checkbox.checked = true;
+                        }
+                        
+                        // Update badge count
+                        const desktopBadge = document.getElementById('desktopBadge');
+                        const mobileBadge = document.getElementById('mobileBadge');
+                        if (desktopBadge) desktopBadge.textContent = data.unviewed_count;
+                        if (mobileBadge) mobileBadge.textContent = data.unviewed_count;
+                        
+                        // Close modal after a short delay to show the success message
+                        setTimeout(() => {
+                            closeDetailModal();
+                        }, 1000);
+                    } else {
+                        alert('Failed to save review');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error saving review:', err);
+                    alert('Error saving review');
+                });
+            } else {
+                closeDetailModal();
+            }
+        }
+
+        // Close detail modal when clicking outside
+        document.getElementById('caseDetailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDetailModal();
+            }
+        });
+
+        // ====================================================================
+        // AUTO-OPEN MODAL ON PAGE LOAD
+        // ====================================================================
+        window.addEventListener('DOMContentLoaded', () => {
+            // Small delay to ensure all DOM elements are ready
+            setTimeout(() => {
+                // Update badge with urgent cases count
+                updateNotificationBadge();
+                
+                const criticalAlert = document.querySelector('.alert-critical');
+                
+                // Auto-open if there are urgent cases or if data is loaded
+                if (urgentCases.length > 0 || criticalAlert) {
+                    openPriorityQueue();
+                }
+            }, 500);
+        });
+
+        // Alternative: Use window.onload for older browsers
+        window.onload = function() {
+            // Update badge with urgent cases count
+            updateNotificationBadge();
+            
+            const criticalAlert = document.querySelector('.alert-critical');
+            
+            if (urgentCases.length > 0 || criticalAlert) {
+                // Only auto-open if not already open
+                const modal = document.getElementById('priorityModal');
+                if (modal && !modal.classList.contains('active')) {
+                    openPriorityQueue();
+                }
+            }
+        };
+    </script>
+</body>
+</html>

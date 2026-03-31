@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Management Dashboard - Search</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- ============================================================================
+         NAVIGATION BAR (Search Page)
+         ============================================================================ -->
+    <nav class="navbar">
+        <!-- Logo & Title -->
+        <div class="navbar-logo">
+            <div class="logo-icon">🏢</div>
+            <span class="logo-title">Property Insights</span>
+        </div>
+
+        <!-- Navbar Content (Profile) -->
+        <div class="navbar-content">
+            <!-- Quick Actions -->
+            <div class="navbar-actions">
+                <!-- No notifications on search page -->
+            </div>
+        </div>
+
+        <!-- Mobile Hamburger Menu -->
+        <button class="navbar-hamburger" id="hamburgerBtn" aria-label="Toggle menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </nav>
+
+    <!-- Mobile Menu (Hidden by default) -->
+    <div class="navbar-mobile-menu" id="mobileMenu">
+        <hr class="mobile-menu-divider">
+        <button class="mobile-menu-item logout">
+            <span>🚪</span> Logout
+        </button>
+    </div>
+
+    <div class="search-container">
+        <div class="search-box">
+            <div class="search-header">
+                <h1 style="font-family: 'Cormorant Garamond', serif;">Property Insights</h1>
+                <p class="search-subtitle">Enter your APN to get started</p>
+            </div>
+
+            <div class="search-form-wrapper">
+                <form id="searchForm" onsubmit="handleSearch(event)">
+                    <div class="search-input-group">
+                        <input
+                            type="text"
+                            id="apnInput"
+                            class="search-input"
+                            placeholder="Enter 10-digit APN..."
+                            maxlength="10"
+                            autocomplete="off"
+                            inputmode="numeric"
+                        />
+                        <button type="submit" class="search-button" id="searchBtn">
+                            <span class="search-icon">🔍</span>
+                            <span class="search-text">Search</span>
+                        </button>
+                    </div>
+                </form>
+
+                <div id="loadingSpinner" class="loading-spinner hidden">
+                    <div class="spinner"></div>
+                    <p>Loading property data...</p>
+                </div>
+
+                <div id="errorMessage" class="error-message hidden"></div>
+            </div>
+
+            <div class="search-help">
+                <p class="help-text">
+                    <span class="help-icon">ℹ</span>
+                    Enter your 10-digit Assessor Parcel Number (APN) to view property complaint cases.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apnInput = document.getElementById('apnInput');
+        const searchForm = document.getElementById('searchForm');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const errorMessage = document.getElementById('errorMessage');
+        const searchBtn = document.getElementById('searchBtn');
+
+        // Auto-focus on the input field
+        window.addEventListener('load', () => {
+            apnInput.focus();
+        });
+
+        // Only allow digits
+        apnInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        });
+
+        function handleSearch(event) {
+            event.preventDefault();
+
+            const apn = apnInput.value.trim();
+
+            // Validate APN format
+            if (!apn) {
+                showError('Please enter an APN');
+                return;
+            }
+
+            if (!/^\d{10}$/.test(apn)) {
+                showError('APN must be exactly 10 digits');
+                return;
+            }
+
+            // Show loading state
+            loadingSpinner.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            searchBtn.disabled = true;
+
+            // Send search request
+            fetch('/api/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ apn: apn }),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.success) {
+                        // Redirect to dashboard
+                        window.location.href = data.redirect;
+                    } else {
+                        showError(data.error || 'Failed to fetch property data');
+                        loadingSpinner.classList.add('hidden');
+                        searchBtn.disabled = false;
+                    }
+                })
+                .catch((error) => {
+                    showError('Error: ' + error.message);
+                    loadingSpinner.classList.add('hidden');
+                    searchBtn.disabled = false;
+                });
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        // ====================================================================
+        // NAVBAR HAMBURGER MENU
+        // ====================================================================
+        const hamburgerBtn = document.getElementById('hamburgerBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+
+        hamburgerBtn.addEventListener('click', () => {
+            hamburgerBtn.classList.toggle('active');
+            mobileMenu.classList.toggle('active');
+        });
+
+        // Close menu when clicking on a mobile menu item
+        document.querySelectorAll('.mobile-menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                hamburgerBtn.classList.remove('active');
+                mobileMenu.classList.remove('active');
+            });
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.navbar') && mobileMenu.classList.contains('active')) {
+                hamburgerBtn.classList.remove('active');
+                mobileMenu.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
